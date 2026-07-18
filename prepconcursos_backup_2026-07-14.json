@@ -1,0 +1,436 @@
+{
+  "theme": "dark",
+  "completedExams": {},
+  "solvedQuestions": {
+    "auditor-de-controle-externo-ace-tecnologia-da-informacaotecnologiadainformacao-tipo-1_q79": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 449
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q1": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 35
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q2": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 76
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q3": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 49
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q4": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 33
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q5": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "E",
+      "timeSpent": 69
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q6": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 69
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q7": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 68
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q8": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 54
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q9": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 30
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q10": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 73
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q11": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "E",
+      "timeSpent": 57
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q12": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 138
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q13": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 69
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q14": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 99
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q15": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "E",
+      "timeSpent": 2
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q16": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "E",
+      "timeSpent": 45
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q17": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "D",
+      "timeSpent": 27
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q18": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "E",
+      "timeSpent": 57
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q19": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "D",
+      "timeSpent": 33
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q20": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 33
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q21": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 60
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q22": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "C",
+      "timeSpent": 45
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q23": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 23
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q24": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 16
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q25": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 21
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q26": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 72
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q27": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "C",
+      "timeSpent": 98
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q28": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "D",
+      "timeSpent": 45
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q29": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 121
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q30": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 99
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q31": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 61
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q32": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 119
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q33": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "E",
+      "timeSpent": 101
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q34": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 82
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q35": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "E",
+      "timeSpent": 36
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q36": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "D",
+      "timeSpent": 99
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q37": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "C",
+      "timeSpent": 100
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q38": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 117
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q39": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 91
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q40": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 86
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q41": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 23
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q42": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "E",
+      "timeSpent": 18
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q43": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 40
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q44": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 13
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q45": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "D",
+      "timeSpent": 62
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q46": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 56
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q53": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 46
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q54": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "C",
+      "timeSpent": 12
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q52": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "E",
+      "timeSpent": 94
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q51": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 177
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q50": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 205
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q49": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 244
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q48": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 426
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q47": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 49
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q55": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 66
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q56": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "D",
+      "timeSpent": 20
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q57": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 25
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q58": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 92
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q59": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 35
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q60": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 49
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q61": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 19
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q62": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 204
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q63": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 34
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q64": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 20
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q65": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "B",
+      "timeSpent": 25
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q66": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 36
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q67": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "B",
+      "timeSpent": 26
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q68": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "A",
+      "timeSpent": 39
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q69": {
+      "solved": true,
+      "correct": false,
+      "selectedOption": "C",
+      "timeSpent": 173
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q70": {
+      "solved": true,
+      "correct": true,
+      "selectedOption": "A",
+      "timeSpent": 136
+    }
+  },
+  "starredQuestions": {
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q30": true,
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01_q47": true
+  }
+}
