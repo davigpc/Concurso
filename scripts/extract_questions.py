@@ -324,6 +324,20 @@ def clean_option_text(text):
 
 def parse_cesgranrio_questions(text, total_questions):
     """Parses Cesgranrio questions from raw text using dedicated 2-column regex matching."""
+    # Capture Portuguese support text before Question 1
+    pt_support = ""
+    pt_match = re.search(r"<strong>L[ÍI]NGUA\s+PORTUGUESA</strong>\s*\n(.*?)<strong>1</strong>(?=[A-Z\u00C0-\u00DC])", text, re.DOTALL | re.IGNORECASE)
+    if pt_match:
+        pt_support = pt_match.group(1).strip()
+        pt_support = re.sub(r"--- PAGE \d+ ---", "", pt_support).strip()
+
+    # Capture English support text before Question 11
+    eng_support = ""
+    eng_match = re.search(r"<strong>L[ÍI]NGUA\s+INGLESA</strong>\s*\n(.*?)<strong>11</strong>", text, re.DOTALL | re.IGNORECASE)
+    if eng_match:
+        eng_support = eng_match.group(1).strip()
+        eng_support = re.sub(r"--- PAGE \d+ ---", "", eng_support).strip()
+
     cb_pos = re.search(r"CONHECIMENTOS\s+B[ÁA]SICOS", text, re.IGNORECASE)
     if cb_pos:
         text = text[cb_pos.end():]
@@ -391,6 +405,11 @@ def parse_cesgranrio_questions(text, total_questions):
         
     parsed_questions = []
     for q_num, statement, options in questions_raw:
+        if pt_support and q_num <= 6 and "shared-text-block" not in statement:
+            statement = f'<div class="shared-text-block"><strong>Texto de apoio:</strong><br>{pt_support}</div><br>{statement}'
+        elif eng_support and 11 <= q_num <= 15 and "shared-text-block" not in statement:
+            statement = f'<div class="shared-text-block"><strong>Texto de apoio:</strong><br>{eng_support}</div><br>{statement}'
+
         q_item = {
             "number": q_num,
             "statement": statement,
