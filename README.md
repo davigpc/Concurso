@@ -76,6 +76,10 @@ Para rodar a interface de estudos localmente em ambiente de desenvolvimento, voc
 
 Caso queira extrair novas questões de PDFs ou atualizar o banco de dados:
 
+#### Opção A: Usando o Script Automatizado (.bat) no Windows
+Basta dar um duplo clique no arquivo [extrair_provas.bat](file:///c:/Users/davig/Downloads/Concurso/extrair_provas.bat) na raiz do projeto. Ele executará todas as etapas de extração, correção e verificação automaticamente.
+
+#### Opção B: Execução Manual via Terminal
 1.  Certifique-se de ter o Python 3 instalado em sua máquina.
 2.  Instale o **PyMuPDF** (`fitz`), que é a biblioteca utilizada para a leitura avançada e mapeamento de estilos dos PDFs:
     ```bash

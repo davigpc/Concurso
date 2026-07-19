@@ -68,7 +68,7 @@ for exam in data:
         
     for q in questions:
         num = q["number"]
-        ans = ans_map.get(num, "A") # Fallback to A if missing
+        ans = q.get("correct_answer") if q.get("correct_answer") else ans_map.get(num, "A")
         q["correct_answer"] = ans
         
         # Build explanation

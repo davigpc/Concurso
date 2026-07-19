@@ -104,7 +104,7 @@ def split_transition(option_text, q_num):
     return option_text, None, []
 
 
-def extract_html_text_from_page(page):
+def extract_html_text_from_page(page, is_two_column=False):
     """Extracts text from a fitz.Page, converting formatting to HTML tags and filtering headers/footers."""
     page_rect = page.rect
     header_threshold = page_rect.y0 + 65.0
@@ -121,8 +121,24 @@ def extract_html_text_from_page(page):
             
     raw = page.get_text("rawdict")
     text_parts = []
-    for b in raw["blocks"]:
-        if b["type"] == 0:
+    
+    blocks_text = [b for b in raw["blocks"] if b["type"] == 0]
+    
+    if is_two_column:
+        mid = page_rect.width / 2.0
+        full_width_top = [b for b in blocks_text if b["bbox"][0] < mid - 20 and b["bbox"][2] > mid + 20 and b["bbox"][1] < page_rect.height * 0.25]
+        left_blocks = [b for b in blocks_text if b not in full_width_top and (b["bbox"][0] + b["bbox"][2])/2.0 < mid]
+        right_blocks = [b for b in blocks_text if b not in full_width_top and (b["bbox"][0] + b["bbox"][2])/2.0 >= mid]
+        
+        full_width_top.sort(key=lambda b: b["bbox"][1])
+        left_blocks.sort(key=lambda b: b["bbox"][1])
+        right_blocks.sort(key=lambda b: b["bbox"][1])
+        
+        sorted_blocks = full_width_top + left_blocks + right_blocks
+    else:
+        sorted_blocks = sorted(blocks_text, key=lambda b: b["bbox"][1])
+
+    for b in sorted_blocks:
             b_rect = fitz.Rect(b["bbox"])
             if b_rect.y1 <= header_threshold:
                 continue
@@ -200,8 +216,7 @@ def split_fgv_options(q_body, q_num):
     indices = []
     matches = []
     for m in markers:
-        pat = rf"(?:<strong>|<em>|<u>|\s)*\({m}\)(?:</strong>|</em>|</u>|\s)*"
-        match = re.search(pat, q_body)
+        match = re.search(rf"\({m}\)", q_body)
         if match:
             indices.append(match.start())
             matches.append(match)
@@ -222,17 +237,17 @@ def split_fgv_options(q_body, q_num):
     
     # Fallback to lookahead regex splitter
     option_matches = re.findall(
-        r"(?:<strong>|<em>|<u>|\s)*\(([A-E])\)(?:</strong>|</em>|</u>|\s)*(.*?)(?=(?:<strong>|<em>|<u>|\s)*\([A-E]\)(?:</strong>|</em>|</u>|\s)*|$)",
+        r"\(([A-E])\)(.*?)(?=\([A-E]\)|$)",
         q_body,
         re.DOTALL
     )
-    if len(option_matches) == 5:
-        first_marker_match = re.search(r"(?:<strong>|<em>|<u>|\s)*\(A\)(?:</strong>|</em>|</u>|\s)*", q_body)
+    if len(option_matches) >= 5:
+        first_marker_match = re.search(r"\(A\)", q_body)
         if first_marker_match:
             statement = q_body[:first_marker_match.start()].strip()
         else:
             statement = q_body.split("(A)")[0].strip()
-        options = {item[0]: item[1].strip() for item in option_matches}
+        options = {item[0]: item[1].strip() for item in option_matches[:5]}
         return statement, options
         
     return q_body, {}
@@ -278,6 +293,86 @@ def parse_fgv_questions(text, total_questions):
     for q_num, q_body in questions_raw:
         statement, options = split_fgv_options(q_body, q_num)
         
+        q_item = {
+            "number": q_num,
+            "statement": statement,
+            "options": options,
+            "type": "multiple_choice"
+        }
+        if not options:
+            q_item["error"] = "Failed to split options"
+            
+        parsed_questions.append(q_item)
+                
+    return parsed_questions
+
+
+def parse_cesgranrio_questions(text, total_questions):
+    """Parses Cesgranrio questions from raw text using dedicated 2-column regex matching."""
+    cb_pos = re.search(r"CONHECIMENTOS\s+B[ÁA]SICOS", text, re.IGNORECASE)
+    if cb_pos:
+        text = text[cb_pos.end():]
+
+    questions_raw = []
+    current_pos = 0
+    
+    for q_num in range(1, total_questions + 1):
+        pattern = rf"\n\s*(?:<[^>]+>|\s)*{q_num}(?:<[^>]+>|\s)*(?=[A-Z\u00C0-\u00DC\"“'‘\$\d<])"
+        candidates = list(re.finditer(pattern, text[current_pos:]))
+        
+        selected_match = None
+        for cand in candidates:
+            cand_start = current_pos + cand.start()
+            sample_chunk = text[cand_start:cand_start + 1200]
+            if re.search(r"\(A\)", sample_chunk):
+                selected_match = cand
+                break
+                
+        if not selected_match:
+            if candidates:
+                selected_match = candidates[0]
+            else:
+                print(f"Warning: Could not find Q{q_num}!")
+                continue
+                
+        start_idx = current_pos + selected_match.end()
+        
+        next_q_num = q_num + 1
+        if next_q_num <= total_questions:
+            next_pattern = rf"\n\s*(?:<[^>]+>|\s)*{next_q_num}(?:<[^>]+>|\s)*(?=[A-Z\u00C0-\u00DC\"“'‘\$\d<])"
+            next_candidates = list(re.finditer(next_pattern, text[start_idx:]))
+            next_selected = None
+            for n_cand in next_candidates:
+                n_start = start_idx + n_cand.start()
+                n_sample = text[n_start:n_start + 1200]
+                if re.search(r"\(A\)", n_sample):
+                    next_selected = n_cand
+                    break
+                    
+            if next_selected:
+                end_idx = start_idx + next_selected.start()
+            else:
+                end_idx = len(text)
+        else:
+            end_idx = len(text)
+            
+        q_body = text[start_idx:end_idx].strip()
+        statement, options = split_fgv_options(q_body, q_num)
+        
+        if not options or len(options) < 5:
+            extended_chunk = text[start_idx:start_idx + 3500]
+            opt_matches = re.findall(r"\(([A-E])\)(.*?)(?=\([A-E]\)|$)", extended_chunk, re.DOTALL)
+            if len(opt_matches) >= 5:
+                first_a = re.search(r"\(A\)", extended_chunk)
+                if first_a:
+                    statement = extended_chunk[:first_a.start()].strip()
+                    options = {m[0]: m[1].strip() for m in opt_matches[:5]}
+
+        questions_raw.append((q_num, statement, options))
+        current_pos = start_idx
+        
+    parsed_questions = []
+    for q_num, statement, options in questions_raw:
         q_item = {
             "number": q_num,
             "statement": statement,
@@ -409,12 +504,15 @@ def extract_all():
         print(f"Extracting {exam['name']}...")
         doc = fitz.open(path)
         
+        is_two_col = (exam["type"] == "cesgranrio" or "cesgranrio" in exam["banca"].lower() or "banco do brasil" in exam["name"].lower())
         full_text = ""
         for i in range(len(doc)):
             full_text += f"\n--- PAGE {i+1} ---\n"
-            full_text += extract_html_text_from_page(doc[i])
+            full_text += extract_html_text_from_page(doc[i], is_two_column=is_two_col)
             
-        if exam["type"] == "fgv":
+        if exam["type"] == "cesgranrio" or "cesgranrio" in exam["banca"].lower() or "banco do brasil" in exam["name"].lower():
+            questions = parse_cesgranrio_questions(full_text, exam["total_questions"])
+        elif exam["type"] == "fgv":
             questions = parse_fgv_questions(full_text, exam["total_questions"])
         else:  # cebraspe
             questions = parse_cebraspe_questions(full_text)
