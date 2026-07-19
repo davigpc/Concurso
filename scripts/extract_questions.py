@@ -307,6 +307,21 @@ def parse_fgv_questions(text, total_questions):
     return parsed_questions
 
 
+def clean_option_text(text):
+    if not text:
+        return ""
+    text = re.sub(r"\n\s*--- PAGE \d+ ---.*$", "", text, flags=re.DOTALL)
+    text = re.sub(r"\n\s*(?:<strong>|<em>|<u>|\s)*RASCUNHO.*$", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(
+        r"\n\s*(?:<[^>]+>|\s)*(?:CONHECIMENTOS\s+ESPEC[ÍI]FICOS|CONHECIMENTOS\s+B[ÁA]SICOS|MATEM[ÁA]TICA|L[ÍI]NGUA\s+INGLESA|L[ÍI]NGUA\s+PORTUGUESA|ATUALIDADES\s+DO\s+MERCADO\s+FINANCEIRO|PROBABILIDADE\s+E\s+ESTAT[ÍI]STICA|CONHECIMENTOS\s+BANC[ÁA]RIOS|TECNOLOGIA\s+DA\s+INFORMA[ÇC][ÃA]O).*",
+        "",
+        text,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+    text = re.sub(r"\n\s*(?:<[^>]+>|\s)*\d+(?:<[^>]+>|\s)*(?=[A-Z\u00C0-\u00DC\"“'‘\$\d<]).*$", "", text, flags=re.DOTALL)
+    return text.strip()
+
+
 def parse_cesgranrio_questions(text, total_questions):
     """Parses Cesgranrio questions from raw text using dedicated 2-column regex matching."""
     cb_pos = re.search(r"CONHECIMENTOS\s+B[ÁA]SICOS", text, re.IGNORECASE)
@@ -368,6 +383,9 @@ def parse_cesgranrio_questions(text, total_questions):
                     statement = extended_chunk[:first_a.start()].strip()
                     options = {m[0]: m[1].strip() for m in opt_matches[:5]}
 
+        for k in options:
+            options[k] = clean_option_text(options[k])
+
         questions_raw.append((q_num, statement, options))
         current_pos = start_idx
         
@@ -421,6 +439,22 @@ def parse_cebraspe_questions(text):
 
 def map_discipline(exam_type, exam_name, q_num, total_questions):
     """Maps a question to its discipline category based on type, name, and index."""
+    if "banco do brasil" in exam_name.lower() or "escriturario" in exam_name.lower():
+        if q_num <= 10:
+            return "Língua Portuguesa"
+        elif q_num <= 15:
+            return "Língua Inglesa"
+        elif q_num <= 20:
+            return "Matemática"
+        elif q_num <= 25:
+            return "Atualidades do Mercado Financeiro"
+        elif q_num <= 30:
+            return "Probabilidade e Estatística"
+        elif q_num <= 35:
+            return "Conhecimentos Bancários"
+        else:
+            return "Tecnologia da Informação"
+
     discipline = "Conhecimentos Específicos"
     if exam_type == "fgv":
         if total_questions == 80:  # TCESP or TCE-ES
