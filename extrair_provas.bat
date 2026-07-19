@@ -14,6 +14,7 @@ echo [0/4] Sincronizando novos PDFs na pasta 'provas/'...
 echo ---------------------------------------------------
 python scripts/gerar_config_prova.py
 if errorlevel 1 goto ERR_SYNC
+python scripts/parse_gabarito.py
 
 echo.
 echo [1/4] Extraindo questoes dos PDFs na pasta 'provas/'...
@@ -26,6 +27,7 @@ echo [2/4] Aplicando gabaritos e atualizando a base de dados...
 echo ---------------------------------------------------
 python scripts/patch_db.py
 if errorlevel 1 goto ERR_PATCH
+python scripts/classify_tags.py
 
 echo.
 echo [3/4] Validando integridade da base de dados gerada...
