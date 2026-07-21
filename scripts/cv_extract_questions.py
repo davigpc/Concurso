@@ -410,7 +410,7 @@ class CesgranrioExtractor(BaseExamExtractor):
         # Cesgranrio question numbers appear on line boundaries or preceded by QUESTÃO
         for q_num in range(1, self.total_questions + 1):
             num_str = f"(?:0?{q_num}|{q_num:02d})"
-            pat = rf"(?:^|\n|\b)\s*(?:<[^>]+>|\s)*(?:QUEST[AÃO]+\s+)?{num_str}\s*(?:</[^>]+>)*\s*(?:\n|\t|\s+)(?=[A-Z\u00C0-\u00DC\"\'$\d<\(])"
+            pat = rf"(?:^|\n|\b)\s*(?:<[^>]+>|\s)*(?:QUEST[AÃO]+\s+)?{num_str}\s*(?:</[^>]+>)*\s*(?=[A-Z\u00C0-\u00DC\"\'$])"
             for m in re.finditer(pat, full_text):
                 all_matches.append((q_num, m.start(), m.end()))
 
