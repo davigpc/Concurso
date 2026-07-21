@@ -1,40 +1,46 @@
 """
-Computer Vision PDF Question Extractor -> SQLite Database
+PrepConcursos - Computer Vision & Geometric PDF Question Extractor (OOP Strategy Pattern)
 
-Uses PyMuPDF geometric layout analysis (bounding boxes, block coordinates)
-to extract questions, options, support texts, and images from exam PDFs,
-then writes everything directly into concurso.db.
+Supported Bancas:
+  - CebraspeExtractor: Right/Wrong (Certo/Errado) itemization & continuous support texts.
+  - FGVExtractor: 2-column layout multiple-choice (A-E) & ranged reading passages.
+  - CesgranrioExtractor: Multiple-choice (A-E) with isolated line numbers & tabbed option parsing.
+
+Database Target: SQLite (concurso.db)
 """
+
 import os
 import re
 import json
 import sqlite3
+from abc import ABC, abstractmethod
 import fitz  # PyMuPDF
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PDF_DIR = os.path.join(SCRIPT_DIR, "..", "provas")
-DB_PATH = os.path.join(SCRIPT_DIR, "..", "concurso.db")
-PUBLIC_IMAGES_DIR = os.path.join(SCRIPT_DIR, "..", "public", "images", "provas")
+PROJECT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+PDF_DIR = os.path.join(PROJECT_DIR, "provas")
+DB_PATH = os.path.join(PROJECT_DIR, "concurso.db")
+PUBLIC_IMAGES_DIR = os.path.join(PROJECT_DIR, "public", "images", "provas")
 
-# ---------------------------------------------------------------------------
-# Geometric constants for layout analysis
-# ---------------------------------------------------------------------------
-HEADER_MARGIN = 65.0   # px from top to skip headers
-FOOTER_MARGIN = 65.0   # px from bottom to skip footers
-MIN_IMAGE_DIM = 60     # minimum width/height to keep an image
+MIN_IMAGE_DIM = 60
+HEADER_MARGIN = 40
+FOOTER_MARGIN = 40
 
-# Patterns to detect Cebraspe support text blocks
+IMAGE_REF_PATTERN = re.compile(
+    r"\b(?:figura|gr[áa]fico|tabela|diagrama|esquema|imagem|ilustra[çc][aã]o|quadro|fluxograma|c[óo]digo|algoritmo)\b",
+    re.IGNORECASE,
+)
+
 CEBRASPE_SUPPORT_PATTERN = re.compile(
-    r"((?:Julgue\s+os\s+itens|Julgue\s+os\s+pr[oó]ximos|Julgue\s+os\s+seguintes|"
-    r"Julgue\s+o\s+seguinte\s+item|A\s+respeito\s+de|No\s+que\s+se\s+refere\s+a|"
-    r"Acerca\s+de|Com\s+rela[cç][aã]o\s+a|Nos\s+termos\s+da|Em\s+rela[cç][aã]o\s+a|"
+    r"((?:Texto\s+(?:I{1,3}|IV|V|VI|VII|VIII|IX|X|\d+)|"
+    r"Leia\s+o\s+texto\s+.*?|Julgue\s+os?\s+(?:itens?|seguintes?|pr[oó]ximos?\s+itens?)|"
+    r"Considerando\s+o\s+texto\s+.*?|Acerca\s+de|Com\s+rela[cç][aã]o\s+a|Nos\s+termos\s+da|Em\s+rela[cç][aã]o\s+a|"
     r"Quanto\s+a[os]?)\b.*?"
     r"(?:julgue\s+os?\s+(?:itens?|seguintes?|pr[oó]ximos?\s+itens?|"
     r"itens?\s+(?:subsequentes?|que\s+se\s+seguem|a\s+seguir)))\s*\.?\s*)",
     re.IGNORECASE | re.DOTALL
 )
 
-# Transition patterns for FGV / Cesgranrio reading passages
 TRANSITION_PATTERNS = [
     re.compile(r"(?:READ\s+THE\s+TEXT\s+(?:AND\s+ANSWER|TO\s+ANSWER)\s+QUESTIONS\s+(\d+)\s+(?:TO|AND)\s+(\d+)\b:?)", re.IGNORECASE),
     re.compile(r"(?:Texto\s+para\s+as\s+quest[oõ]es\s+de\s+(\d+)\s+a\s+(\d+)\b:?)", re.IGNORECASE),
@@ -51,23 +57,16 @@ WORD_NUMS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# HTML text extraction from a single page using bounding box analysis
-# ---------------------------------------------------------------------------
 def escape_html(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def extract_page_blocks(page, is_two_column=None):
-    """
-    Returns text extracted from a single PDF page with geometric layout awareness.
-    Auto-detects 2-column layout if is_two_column is None.
-    """
+    """Returns text extracted from a single PDF page with geometric layout awareness."""
     page_rect = page.rect
     header_y = page_rect.y0 + HEADER_MARGIN
     footer_y = page_rect.y1 - FOOTER_MARGIN
 
-    # Detect underline drawings
     drawings = page.get_drawings()
     underlines = []
     for d in drawings:
@@ -79,14 +78,12 @@ def extract_page_blocks(page, is_two_column=None):
     raw = page.get_text("rawdict")
     text_blocks = [b for b in raw["blocks"] if b["type"] == 0]
 
-    # Auto-detect 2-column layout
     if is_two_column is None:
         mid = page_rect.width / 2.0
         left_count = sum(1 for b in text_blocks if (b["bbox"][0] + b["bbox"][2]) / 2.0 < mid)
         right_count = sum(1 for b in text_blocks if (b["bbox"][0] + b["bbox"][2]) / 2.0 >= mid)
         is_two_column = left_count >= 2 and right_count >= 2
 
-    # Two-column layout sorting
     if is_two_column:
         mid = page_rect.width / 2.0
         full_width = [b for b in text_blocks 
@@ -123,7 +120,6 @@ def extract_page_blocks(page, is_two_column=None):
                 is_bold = bool(flags & 16) or "bold" in font.lower()
                 is_italic = bool(flags & 2) or "italic" in font.lower()
 
-                # Character-level underline detection
                 current_text = ""
                 current_underlined = None
                 segments = []
@@ -166,11 +162,8 @@ def extract_page_blocks(page, is_two_column=None):
     return "".join(html_parts)
 
 
-# ---------------------------------------------------------------------------
-# Image extraction
-# ---------------------------------------------------------------------------
 def extract_images(doc, exam_id):
-    """Extract images from all pages with geometric bounding box coordinates, filtering watermarks and icons."""
+    """Extract images from all pages with geometric bounding box coordinates."""
     exam_img_dir = os.path.join(PUBLIC_IMAGES_DIR, exam_id)
     page_images = {}
 
@@ -187,8 +180,6 @@ def extract_images(doc, exam_id):
             try:
                 base = doc.extract_image(xref)
                 w, h = base.get("width", 0), base.get("height", 0)
-                
-                # Filter small decorative icons (< 60px) or full page background graphics/watermarks (> 90% page)
                 if w < MIN_IMAGE_DIM or h < MIN_IMAGE_DIM:
                     continue
                 if w >= page_rect.width * 0.9 and h >= page_rect.height * 0.9:
@@ -212,9 +203,6 @@ def extract_images(doc, exam_id):
     return page_images
 
 
-# ---------------------------------------------------------------------------
-# Question parsing (banca-specific)
-# ---------------------------------------------------------------------------
 def clean_option_text(text):
     """Remove trailing page markers, section headers, and draft text."""
     if not text:
@@ -275,151 +263,226 @@ def split_options_ae(body):
     return body, {}
 
 
-def parse_fgv_questions(full_text, total_questions, banca="FGV"):
-    """Parse FGV / Cesgranrio questions using geometric header detection."""
-    questions = []
-    current_pos = 0
-    space_rule = r'\s*' if banca.upper() == "CESGRANRIO" else r'\s+'
+# ---------------------------------------------------------------------------
+# OOP Strategy Pattern for Exam Extractors
+# ---------------------------------------------------------------------------
+class BaseExamExtractor(ABC):
+    def __init__(self, exam_id, exam_name, doc, config, banca, total_questions, year):
+        self.exam_id = exam_id
+        self.exam_name = exam_name
+        self.doc = doc
+        self.config = config
+        self.banca = banca
+        self.total_questions = total_questions
+        self.year = year
 
-    for q_num in range(1, total_questions + 1):
-        num_str = f"(?:0?{q_num}|{q_num:02d})"
-        pat = rf'\n\s*(?:<[^>]+>)*\s*{num_str}\s*(?:</[^>]+>)*{space_rule}(?=[A-Z\u00C0-\u00DC"\'$\d<\(])'
-        candidates = list(re.finditer(pat, full_text[current_pos:]))
+    @abstractmethod
+    def extract_questions(self, full_text):
+        pass
 
-        selected = None
-        for cand in candidates:
-            cand_abs = current_pos + cand.start()
-            chunk = full_text[cand_abs:cand_abs + 1500]
-            if re.search(r"\(A\)", chunk):
-                selected = cand
-                break
-        if not selected and candidates:
-            selected = candidates[0]
-        if not selected:
-            continue
+    @abstractmethod
+    def attach_support_texts(self, questions):
+        pass
 
-        start_idx = current_pos + selected.end()
-
-        # Find next question boundary
-        next_q = q_num + 1
-        end_idx = len(full_text)
-        if next_q <= total_questions:
-            next_num_str = f"(?:0?{next_q}|{next_q:02d})"
-            next_pat = rf'\n\s*(?:<[^>]+>)*\s*{next_num_str}\s*(?:</[^>]+>)*{space_rule}(?=[A-Z\u00C0-\u00DC"\'$\d<\(])'
-            next_cands = list(re.finditer(next_pat, full_text[start_idx:]))
-            for nc in next_cands:
-                nc_abs = start_idx + nc.start()
-                nchunk = full_text[nc_abs:nc_abs + 1500]
-                if re.search(r"\(A\)", nchunk):
-                    end_idx = nc_abs
-                    break
-
-        q_body = full_text[start_idx:end_idx].strip()
-        stmt, opts = split_options_ae(q_body)
-
-        # Skip draft / discursive pages
-        clean_check = re.sub(r"<[^>]*>", "", stmt).strip()
-        if not opts and ("RASCUNHO" in clean_check or "DISCURSIVA" in clean_check
-                         or "Realização" in clean_check or len(clean_check) < 15):
-            continue
-
-        questions.append({
-            "number": q_num,
-            "statement": stmt,
-            "options": opts,
-            "type": "multiple_choice"
-        })
-        current_pos = start_idx
-
-    return questions
+    def clean_all_options(self, questions):
+        for q in questions:
+            if "options" in q:
+                for k in q["options"]:
+                    q["options"][k] = clean_option_text(q["options"][k])
 
 
-def parse_cebraspe_questions(full_text):
-    """Parse Cebraspe right/wrong items using geometric detection."""
-    item_pat = r'(?:^|\n|\b)\s*(?:<[^>]+>)*\s*(\d{1,3})\s*(?:</[^>]+>)*\s+(?=[A-Z\u00C0-\u00DC"\'$])'
-    all_matches = list(re.finditer(item_pat, full_text))
+class CebraspeExtractor(BaseExamExtractor):
+    def extract_questions(self, full_text):
+        item_pat = r'(?:^|\n|\b)\s*(?:<[^>]+>)*\s*(\d{1,3})\s*(?:</[^>]+>)*\s+(?=[A-Z\u00C0-\u00DC"\'$])'
+        all_matches = list(re.finditer(item_pat, full_text))
+        by_num = {}
+        for i, m in enumerate(all_matches):
+            try:
+                q_num = int(m.group(1))
+            except ValueError:
+                continue
+            if not (1 <= q_num <= 120):
+                continue
+            start = m.end()
+            end = all_matches[i + 1].start() if i + 1 < len(all_matches) else len(full_text)
+            body = full_text[start:end].strip()
+            body = re.sub(r"\n\s*CEBRASPE.*$", "", body)
+            body = re.sub(r"--- PAGE \d+ ---", "", body)
+            if q_num not in by_num and len(body) > 10:
+                by_num[q_num] = body
 
-    by_num = {}
-    for i, m in enumerate(all_matches):
-        try:
-            q_num = int(m.group(1))
-        except ValueError:
-            continue
-        if not (1 <= q_num <= 120):
-            continue
-        start = m.end()
-        end = all_matches[i + 1].start() if i + 1 < len(all_matches) else len(full_text)
-        body = full_text[start:end].strip()
-        body = re.sub(r"\n\s*CEBRASPE.*$", "", body)
-        body = re.sub(r"--- PAGE \d+ ---", "", body)
-        body = clean_option_text(body)
-        if q_num not in by_num and len(body) > 10:
+        questions = []
+        for q_num in sorted(by_num.keys()):
+            questions.append({
+                "number": q_num,
+                "statement": by_num[q_num],
+                "options": {"C": "Certo", "E": "Errado"},
+                "type": "right_wrong"
+            })
+        return questions
+
+    def attach_support_texts(self, questions):
+        active_support = None
+        for q in questions:
+            match = CEBRASPE_SUPPORT_PATTERN.search(q["statement"])
+            if match:
+                support = match.group(0).strip()
+                remainder = (q["statement"][:match.start()] + " " + q["statement"][match.end():]).strip()
+                active_support = support
+                q["statement"] = remainder
+
+            if active_support and "shared-text-block" not in q["statement"]:
+                q["support_text"] = active_support
+
+
+class FGVExtractor(BaseExamExtractor):
+    def extract_questions(self, full_text):
+        by_num = {}
+        all_matches = []
+        for q_num in range(1, self.total_questions + 1):
+            num_str = f"(?:0?{q_num}|{q_num:02d})"
+            pat = rf"\n\s*(?:<[^>]+>)*\s*{num_str}\s*(?:</[^>]+>)*\s+(?=[A-Z\u00C0-\u00DC\"\'$\d<\(])"
+            for m in re.finditer(pat, full_text):
+                all_matches.append((q_num, m.start(), m.end()))
+
+        all_matches.sort(key=lambda x: x[1])
+        unique_matches = []
+        seen = set()
+        for q_num, s, e in all_matches:
+            if q_num not in seen:
+                seen.add(q_num)
+                unique_matches.append((q_num, s, e))
+        unique_matches.sort(key=lambda x: x[1])
+
+        for i, (q_num, s, e) in enumerate(unique_matches):
+            end = unique_matches[i + 1][1] if i + 1 < len(unique_matches) else len(full_text)
+            body = full_text[e:end].strip()
             by_num[q_num] = body
 
-    questions = []
-    for q_num in sorted(by_num.keys()):
-        questions.append({
-            "number": q_num,
-            "statement": by_num[q_num],
-            "options": {"C": "Certo", "E": "Errado"},
-            "type": "right_wrong"
-        })
-    return questions
+        questions = []
+        for q_num in sorted(by_num.keys()):
+            body = by_num[q_num]
+            stmt, opts = split_options_ae(body)
+            questions.append({
+                "number": q_num,
+                "statement": stmt,
+                "options": opts,
+                "type": "multiple_choice"
+            })
+        return questions
+
+    def attach_support_texts(self, questions):
+        for q in questions:
+            opts = q.get("options", {})
+            if "E" not in opts:
+                continue
+            plain_e = re.sub(r"<[^>]*>", "", opts["E"])
+            for tp in TRANSITION_PATTERNS:
+                m = tp.search(plain_e)
+                if m:
+                    groups = [g for g in m.groups() if g]
+                    start_q, end_q = None, None
+                    if len(groups) >= 2 and groups[0].isdigit() and groups[1].isdigit():
+                        start_q, end_q = int(groups[0]), int(groups[1])
+                    elif len(groups) == 1:
+                        val = groups[0].lower()
+                        count = int(val) if val.isdigit() else WORD_NUMS.get(val, 5)
+                        start_q = q["number"] + 1
+                        end_q = q["number"] + count
+
+                    if start_q and end_q:
+                        m_raw = tp.search(opts["E"])
+                        raw_start = m_raw.start() if m_raw else m.start()
+                        support = opts["E"][raw_start:].strip()
+                        opts["E"] = opts["E"][:raw_start].strip()
+                        for tgt in questions:
+                            if start_q <= tgt["number"] <= end_q:
+                                tgt["support_text"] = support
+                    break
+        self.clean_all_options(questions)
 
 
-# ---------------------------------------------------------------------------
-# Support text / transition detection
-# ---------------------------------------------------------------------------
-def attach_cebraspe_support_texts(questions):
-    """Detect and prepend Cebraspe support text blocks to their items."""
-    active_support = None
-    for q in questions:
-        match = CEBRASPE_SUPPORT_PATTERN.search(q["statement"])
-        if match:
-            support = match.group(0).strip()
-            remainder = (q["statement"][:match.start()] + " " + q["statement"][match.end():]).strip()
-            active_support = support
-            q["statement"] = remainder
+class CesgranrioExtractor(BaseExamExtractor):
+    def extract_questions(self, full_text):
+        by_num = {}
+        all_matches = []
 
-        if active_support and "shared-text-block" not in q["statement"]:
-            q["support_text"] = active_support
+        # Cesgranrio question numbers appear on line boundaries or preceded by QUESTÃO
+        for q_num in range(1, self.total_questions + 1):
+            num_str = f"(?:0?{q_num}|{q_num:02d})"
+            pat = rf"(?:^|\n|\b)\s*(?:<[^>]+>|\s)*(?:QUEST[AÃO]+\s+)?{num_str}\s*(?:</[^>]+>)*\s*(?:\n|\t|\s+)(?=[A-Z\u00C0-\u00DC\"\'$\d<\(])"
+            for m in re.finditer(pat, full_text):
+                all_matches.append((q_num, m.start(), m.end()))
+
+        all_matches.sort(key=lambda x: x[1])
+        unique_matches = []
+        seen = set()
+        for q_num, s, e in all_matches:
+            if q_num not in seen:
+                seen.add(q_num)
+                unique_matches.append((q_num, s, e))
+        unique_matches.sort(key=lambda x: x[1])
+
+        for i, (q_num, s, e) in enumerate(unique_matches):
+            end = unique_matches[i + 1][1] if i + 1 < len(unique_matches) else len(full_text)
+            body = full_text[e:end].strip()
+            by_num[q_num] = body
+
+        questions = []
+        for q_num in sorted(by_num.keys()):
+            body = by_num[q_num]
+            stmt, opts = split_options_ae(body)
+            questions.append({
+                "number": q_num,
+                "statement": stmt,
+                "options": opts,
+                "type": "multiple_choice"
+            })
+        return questions
+
+    def attach_support_texts(self, questions):
+        for q in questions:
+            opts = q.get("options", {})
+            if "E" not in opts:
+                continue
+            plain_e = re.sub(r"<[^>]*>", "", opts["E"])
+            for tp in TRANSITION_PATTERNS:
+                m = tp.search(plain_e)
+                if m:
+                    groups = [g for g in m.groups() if g]
+                    start_q, end_q = None, None
+                    if len(groups) >= 2 and groups[0].isdigit() and groups[1].isdigit():
+                        start_q, end_q = int(groups[0]), int(groups[1])
+                    elif len(groups) == 1:
+                        val = groups[0].lower()
+                        count = int(val) if val.isdigit() else WORD_NUMS.get(val, 5)
+                        start_q = q["number"] + 1
+                        end_q = q["number"] + count
+
+                    if start_q and end_q:
+                        m_raw = tp.search(opts["E"])
+                        raw_start = m_raw.start() if m_raw else m.start()
+                        support = opts["E"][raw_start:].strip()
+                        opts["E"] = opts["E"][:raw_start].strip()
+                        for tgt in questions:
+                            if start_q <= tgt["number"] <= end_q:
+                                tgt["support_text"] = support
+                    break
+        self.clean_all_options(questions)
 
 
-def attach_fgv_support_texts(questions):
-    """Detect reading passages in option (E) or statement and attach as support text."""
-    for q in questions:
-        opts = q.get("options", {})
-        if "E" not in opts:
-            continue
-        plain_e = re.sub(r"<[^>]*>", "", opts["E"])
-        for tp in TRANSITION_PATTERNS:
-            m = tp.search(plain_e)
-            if m:
-                groups = [g for g in m.groups() if g]
-                start_q, end_q = None, None
-                if len(groups) >= 2 and groups[0].isdigit() and groups[1].isdigit():
-                    start_q, end_q = int(groups[0]), int(groups[1])
-                elif len(groups) == 1:
-                    val = groups[0].lower()
-                    count = int(val) if val.isdigit() else WORD_NUMS.get(val, 5)
-                    start_q = q["number"] + 1
-                    end_q = q["number"] + count
+class ExtractorFactory:
+    @staticmethod
+    def get_extractor(banca, exam_id, exam_name, doc, config, total_questions, year) -> BaseExamExtractor:
+        banca_upper = banca.upper()
+        name_lower = exam_name.lower()
 
-                if start_q and end_q:
-                    m_raw = tp.search(opts["E"])
-                    raw_start = m_raw.start() if m_raw else m.start()
-                    support = opts["E"][raw_start:].strip()
-                    opts["E"] = opts["E"][:raw_start].strip()
-                    for tgt in questions:
-                        if start_q <= tgt["number"] <= end_q:
-                            tgt["support_text"] = support
-                break
-
-    # Clean options text after support texts have been detached
-    for q in questions:
-        if "options" in q:
-            for k in q["options"]:
-                q["options"][k] = clean_option_text(q["options"][k])
+        if banca_upper == "CESGRANRIO" or "banco do brasil" in name_lower:
+            return CesgranrioExtractor(exam_id, exam_name, doc, config, banca, total_questions, year)
+        elif banca_upper == "FGV":
+            return FGVExtractor(exam_id, exam_name, doc, config, banca, total_questions, year)
+        else:
+            return CebraspeExtractor(exam_id, exam_name, doc, config, banca, total_questions, year)
 
 
 # ---------------------------------------------------------------------------
@@ -467,72 +530,43 @@ def extract_all():
     conn.execute("PRAGMA foreign_keys=ON")
     cur = conn.cursor()
 
-    # Clear existing data for clean re-extraction
-    cur.execute("DELETE FROM question_topics")
-    cur.execute("DELETE FROM options")
-    cur.execute("DELETE FROM questions")
-    cur.execute("DELETE FROM exams")
-    conn.commit()
+    pdf_files = [f for f in os.listdir(PDF_DIR) if f.endswith(".pdf")]
+    total_extracted_global = 0
 
-    total_extracted = 0
-
-    for f in sorted(os.listdir(PDF_DIR)):
-        if not f.endswith(".pdf"):
-            continue
-        base_name = f.rsplit(".", 1)[0]
-        config_path = os.path.join(PDF_DIR, base_name + ".json")
-        if not os.path.exists(config_path):
+    for f in pdf_files:
+        base_name = f.replace(".pdf", "")
+        cfg_path = os.path.join(PDF_DIR, f"{base_name}.json")
+        if not os.path.exists(cfg_path):
             continue
 
-        try:
-            with open(config_path, "r", encoding="utf-8") as cf:
-                config = json.load(cf)
-        except Exception as e:
-            print(f"  Config error {f}: {e}")
-            continue
+        with open(cfg_path, "r", encoding="utf-8") as json_f:
+            config = json.load(json_f)
 
-        exam_name = config.get("name", base_name)
-        banca = config.get("banca", "FGV").upper()
-        banca_lower = banca.lower()
-        total_q = config.get("total_questions") or 0
+        exam_name = config.get("nome_prova", base_name)
+        banca = config.get("banca", "CEBRASPE")
+        total_q = config.get("total_questoes", 120)
+        answers = config.get("gabarito", {})
 
-        # Parse answers
-        answers_raw = config.get("answers", {})
-        if isinstance(answers_raw, str):
-            answers = {i + 1: ch for i, ch in enumerate(answers_raw)}
-        else:
-            answers = {int(k): v for k, v in answers_raw.items()}
-
-        # Parse year from name
         year_match = re.search(r"20\d{2}", exam_name)
         year = int(year_match.group()) if year_match else None
 
         exam_id = base_name
         pdf_path = os.path.join(PDF_DIR, f)
-        print(f"Extracting: {exam_name}...")
+        print(f"Extracting [{banca}]: {exam_name}...")
 
         doc = fitz.open(pdf_path)
         page_images = extract_images(doc, exam_id)
 
-        # Build full text with page markers (auto-detecting 2-column layout per page)
         full_text = ""
         for i in range(len(doc)):
             full_text += f"\n--- PAGE {i + 1} ---\n"
             full_text += extract_page_blocks(doc[i], is_two_column=None)
         doc.close()
 
-        # Parse questions based on banca
-        if banca_lower == "cesgranrio" or "banco do brasil" in exam_name.lower():
-            questions = parse_fgv_questions(full_text, total_q, banca="CESGRANRIO")
-            attach_fgv_support_texts(questions)
-        elif banca_lower == "fgv":
-            questions = parse_fgv_questions(full_text, total_q, banca="FGV")
-            attach_fgv_support_texts(questions)
-        else:  # Cebraspe
-            questions = parse_cebraspe_questions(full_text)
-            attach_cebraspe_support_texts(questions)
-
-        # Sort by number
+        # Factory Strategy Pattern Extraction
+        extractor = ExtractorFactory.get_extractor(banca, exam_id, exam_name, doc, config, total_q, year)
+        questions = extractor.extract_questions(full_text)
+        extractor.attach_support_texts(questions)
         questions.sort(key=lambda q: q["number"])
 
         # Insert exam
@@ -548,7 +582,6 @@ def extract_all():
             discipline = map_discipline(banca, exam_name, q_num, total_q)
             ans = answers.get(q_num, "")
 
-            # Find page for this question's images
             q_images = []
             stmt_snippet = re.sub(r"<[^>]*>", "", q["statement"])[:40].strip()
             if stmt_snippet:
@@ -558,13 +591,10 @@ def extract_all():
                     p_num = int(m.group(1))
                     p_imgs = page_images.get(p_num, [])
                     full_q_text = (q["statement"] + " " + (q.get("support_text") or "")).lower()
-                    
-                    # Attach images only if question references a figure/graph/table/diagram/code
                     image_ref_match = re.search(r"\b(?:figura|gr[áa]fico|tabela|diagrama|esquema|imagem|ilustra[çc][aã]o|quadro|fluxograma|c[óo]digo|algoritmo)\b", full_q_text)
                     if image_ref_match or "<img" in full_q_text:
                         q_images = [img["url"] if isinstance(img, dict) else img for img in p_imgs]
 
-            # Build full statement with support text
             statement = q["statement"]
             support_text = q.get("support_text")
             if support_text:
@@ -578,29 +608,37 @@ def extract_all():
 
             cur.execute(
                 """INSERT OR REPLACE INTO questions 
-                   (id, exam_id, number, discipline, type, statement, support_text, 
-                    correct_answer, explanation, images_json, page_number) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (q_id, exam_id, q_num, discipline, q["type"], statement,
-                 support_text, ans, "", json.dumps(q_images), None)
+                   (id, exam_id, number, discipline, type, statement, support_text, correct_answer, explanation, images_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    q_id,
+                    exam_id,
+                    q_num,
+                    discipline,
+                    q.get("type", "multiple_choice"),
+                    statement,
+                    support_text,
+                    ans,
+                    "",
+                    json.dumps(q_images, ensure_ascii=False)
+                )
             )
 
-            # Insert options
-            for opt_key, opt_text in q.get("options", {}).items():
+            opts = q.get("options", {})
+            for key, opt_text in opts.items():
                 cur.execute(
                     "INSERT OR REPLACE INTO options (question_id, option_key, option_text) VALUES (?, ?, ?)",
-                    (q_id, opt_key, opt_text)
+                    (q_id, key, opt_text)
                 )
 
         conn.commit()
-        count = len(questions)
-        total_extracted += count
-        print(f"  -> {count} questions inserted into concurso.db")
+        total_extracted_global += len(questions)
+        print(f"  -> {len(questions)} questions inserted into concurso.db")
 
     conn.close()
-    print(f"\n{'='*50}")
-    print(f"Total: {total_extracted} questions extracted into {DB_PATH}")
-    print(f"{'='*50}")
+    print("\n" + "=" * 50)
+    print(f"Total: {total_extracted_global} questions extracted into {DB_PATH}")
+    print("=" * 50)
 
 
 if __name__ == "__main__":
