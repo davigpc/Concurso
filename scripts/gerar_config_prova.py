@@ -26,9 +26,41 @@ def auto_detect_config(pdf_path):
     if "CEBRASPE" in first_page_text or "CESPE" in first_page_text:
         banca = "CEBRASPE"
     elif "CESGRANRIO" in first_page_text:
-        banca = "FGV"
+        banca = "CESGRANRIO"
 
-    clean_name = base_name.replace("_", " ").replace("-", " ").title()
+    raw_name = base_name.replace("_", " ").replace("-", " ")
+    clean_name = raw_name.title()
+
+    # Normalization dictionary for common terms and acronyms
+    replacements = {
+        r"\bTi\b": "TI",
+        r"\bBcb\b": "BCB",
+        r"\bBdmg\b": "BDMG",
+        r"\bCvm\b": "CVM",
+        r"\bTcesp\b": "TCESP",
+        r"\bTce\b": "TCE",
+        r"\bRn\b": "RN",
+        r"\bEs\b": "ES",
+        r"\bAce\b": "ACE",
+        r"\bSerpro\b": "SERPRO",
+        r"\bDataprev\b": "DATAPREV",
+        r"\bInformacao\b": "Informação",
+        r"\bEspecializao\b": "Especialização",
+        r"\bEspecializacao\b": "Especialização",
+        r"\bSustentacao\b": "Sustentação",
+        r"\bSeguranca\b": "Segurança",
+        r"\bEspecficos\b": "Específicos",
+        r"\bEspecificos\b": "Específicos",
+        r"\bEscriturrio\b": "Escriturário",
+        r"\bEscriturario\b": "Escriturário",
+        r"\bFiscalizao\b": "Fiscalização",
+        r"\bFiscalizacao\b": "Fiscalização",
+        r"\bManha\b": "Manhã"
+    }
+
+    import re
+    for pat, repl in replacements.items():
+        clean_name = re.sub(pat, repl, clean_name, flags=re.IGNORECASE)
 
     total_questions = 70
     if banca == "CEBRASPE":
@@ -40,6 +72,7 @@ def auto_detect_config(pdf_path):
         "total_questions": total_questions,
         "answers": {}
     }
+
 
 
 def sync_provas_json():

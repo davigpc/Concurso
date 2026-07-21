@@ -1,19 +1,28 @@
 import React from "react";
 
-export default function Dashboard({ exams, userState, onStartExam, onStartRandom, onSwitchScreen }) {
-  // Compute global stats
+export default function Dashboard({ exams = [], userState, onStartExam, onStartRandom, onSwitchScreen, loading }) {
+  // Compute global stats across all exams
+  let totalQuestionsCount = 0;
   let totalSolved = 0;
   let correctCount = 0;
-  let starredCount = Object.keys(userState.starredQuestions).filter(k => userState.starredQuestions[k]).length;
+  const starredCount = Object.keys(userState.starredQuestions).filter(k => userState.starredQuestions[k]).length;
 
   exams.forEach(exam => {
-    exam.questions.forEach(q => {
-      const state = userState.solvedQuestions[q.id];
-      if (state && state.solved) {
-        totalSolved++;
-        if (state.correct) correctCount++;
-      }
-    });
+    const totalQ = exam.total_questions || (exam.questions ? exam.questions.length : 0);
+    totalQuestionsCount += totalQ;
+
+    if (exam.solved_count !== undefined) {
+      totalSolved += exam.solved_count;
+      correctCount += exam.correct_count || 0;
+    } else if (exam.questions) {
+      exam.questions.forEach(q => {
+        const state = userState.solvedQuestions[q.id];
+        if (state && state.solved) {
+          totalSolved++;
+          if (state.correct) correctCount++;
+        }
+      });
+    }
   });
 
   const accuracy = totalSolved > 0 ? Math.round((correctCount / totalSolved) * 100) : 0;
@@ -69,48 +78,58 @@ export default function Dashboard({ exams, userState, onStartExam, onStartRandom
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
-        <h3 className="section-title">Navegar por Concurso</h3>
+        <h3 className="section-title">Navegar por Concurso ({exams.length} Provas | {totalQuestionsCount} Questões)</h3>
         <button className="btn btn-primary" onClick={onStartRandom}>⚡ Estudo Rápido (Aleatório)</button>
       </div>
 
-      <div className="exams-list">
-        {exams.map(exam => {
-          const totalExamQuestions = exam.questions.length;
-          let examSolved = 0;
-          
-          exam.questions.forEach(q => {
-            if (userState.solvedQuestions[q.id]?.solved) {
-              examSolved++;
+      {loading ? (
+        <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
+          Carregando banco de questões SQLite...
+        </div>
+      ) : (
+        <div className="exams-list">
+          {exams.map(exam => {
+            const examId = exam.id || exam.exam_id;
+            const examName = exam.name || exam.exam_name;
+            const totalExamQuestions = exam.total_questions || (exam.questions ? exam.questions.length : 0);
+            
+            let examSolved = exam.solved_count !== undefined ? exam.solved_count : 0;
+            if (exam.solved_count === undefined && exam.questions) {
+              exam.questions.forEach(q => {
+                if (userState.solvedQuestions[q.id]?.solved) examSolved++;
+              });
             }
-          });
 
-          const progressPercent = Math.round((examSolved / totalExamQuestions) * 100) || 0;
+            const progressPercent = totalExamQuestions > 0 
+              ? Math.round((examSolved / totalExamQuestions) * 100) 
+              : 0;
 
-          return (
-            <div key={exam.exam_id} className="exam-card">
-              <div className="exam-header">
-                <span className="exam-badge">{exam.banca}</span>
-              </div>
-              <h3 className="exam-title">{exam.exam_name}</h3>
-              <div className="exam-meta">
-                <span>{totalExamQuestions} Questões</span>
-                <span>Resolvidas: {examSolved}/{totalExamQuestions}</span>
-              </div>
-              <div className="exam-progress">
-                <div className="progress-bar-container">
-                  <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
+            return (
+              <div key={examId} className="exam-card">
+                <div className="exam-header">
+                  <span className="exam-badge">{exam.banca}</span>
                 </div>
-                <div style={{ fontSize: "0.8rem", textAlign: "right", color: "var(--text-secondary)" }}>
-                  {progressPercent}% Concluído
+                <h3 className="exam-title">{examName}</h3>
+                <div className="exam-meta">
+                  <span>{totalExamQuestions} Questões</span>
+                  <span>Resolvidas: {examSolved}/{totalExamQuestions}</span>
                 </div>
+                <div className="exam-progress">
+                  <div className="progress-bar-container">
+                    <div className="progress-bar" style={{ width: `${progressPercent}%` }}></div>
+                  </div>
+                  <div style={{ fontSize: "0.8rem", textAlign: "right", color: "var(--text-secondary)" }}>
+                    {progressPercent}% Concluído
+                  </div>
+                </div>
+                <button className="exam-btn" onClick={() => onStartExam(examId)}>
+                  Estudar Agora
+                </button>
               </div>
-              <button className="exam-btn" onClick={() => onStartExam(exam.exam_id)}>
-                Estudar Agora
-              </button>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

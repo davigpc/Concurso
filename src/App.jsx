@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import examsData from "../questions.json";
 import { loadState, saveState, initialUserState } from "./utils/storage";
+import { fetchExams, fetchQuestions, saveProgress } from "./services/api";
 
 // Screen Components
 import Dashboard from "./components/Dashboard";
@@ -12,14 +12,33 @@ import Settings from "./components/Settings";
 export default function App() {
   const [userState, setUserState] = useState(() => loadState());
   const [currentScreen, setCurrentScreen] = useState("dashboard-screen");
+  const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState(null);
   const [initialQuestionIndex, setInitialQuestionIndex] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loadingExams, setLoadingExams] = useState(true);
 
   // Sync theme to root element
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", userState.theme);
   }, [userState.theme]);
+
+  // Load exams list from Express/SQLite backend
+  const refreshExams = async () => {
+    try {
+      setLoadingExams(true);
+      const data = await fetchExams();
+      setExams(data);
+    } catch (err) {
+      console.error("Failed to load exams from API:", err);
+    } finally {
+      setLoadingExams(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshExams();
+  }, []);
 
   const toggleTheme = () => {
     setUserState(prev => {
@@ -29,61 +48,124 @@ export default function App() {
     });
   };
 
-  const handleStartExam = (examId) => {
-    const exam = examsData.find(e => e.exam_id === examId);
-    if (exam) {
+  const handleStartExam = async (examId) => {
+    try {
+      const examMeta = exams.find(e => e.id === examId);
+      const questions = await fetchQuestions({ exam_id: examId });
+      
+      const fullExam = {
+        exam_id: examId,
+        id: examId,
+        exam_name: examMeta?.name || examId,
+        banca: examMeta?.banca || "FGV",
+        questions: questions
+      };
+
       setInitialQuestionIndex(0);
-      setSelectedExam(exam);
+      setSelectedExam(fullExam);
       setCurrentScreen("practice-screen");
+    } catch (err) {
+      console.error("Failed to load questions for exam:", err);
     }
   };
 
-  const handleStartRandom = () => {
-    if (examsData.length === 0) return;
-    const randomIdx = Math.floor(Math.random() * examsData.length);
-    setInitialQuestionIndex(0);
-    setSelectedExam(examsData[randomIdx]);
-    setCurrentScreen("practice-screen");
-  };
+  const handleStartRandom = async () => {
+    try {
+      const questions = await fetchQuestions();
+      if (questions.length === 0) return;
 
-  const handleSaveQuestionState = (questionId, solvedInfo) => {
-    setUserState(prev => {
-      const next = {
-        ...prev,
-        solvedQuestions: {
-          ...prev.solvedQuestions,
-          [questionId]: {
-            ...prev.solvedQuestions[questionId],
-            ...solvedInfo
-          }
-        }
+      const randomIdx = Math.floor(Math.random() * questions.length);
+      const targetQ = questions[randomIdx];
+
+      const fullExam = {
+        exam_id: targetQ.exam_id,
+        id: targetQ.exam_id,
+        exam_name: targetQ.exam_name,
+        banca: targetQ.banca,
+        questions: questions.filter(q => q.exam_id === targetQ.exam_id)
       };
-      saveState(next);
-      return next;
-    });
-  };
 
-  const handleToggleStar = (questionId) => {
-    setUserState(prev => {
-      const next = {
-        ...prev,
-        starredQuestions: {
-          ...prev.starredQuestions,
-          [questionId]: !prev.starredQuestions[questionId]
-        }
-      };
-      saveState(next);
-      return next;
-    });
-  };
-
-  const handleReviewQuestion = (examId, questionNum) => {
-    const exam = examsData.find(e => e.exam_id === examId);
-    if (exam) {
-      const qIdx = exam.questions.findIndex(q => q.number === questionNum);
+      const qIdx = fullExam.questions.findIndex(q => q.id === targetQ.id);
       setInitialQuestionIndex(qIdx !== -1 ? qIdx : 0);
-      setSelectedExam(exam);
+      setSelectedExam(fullExam);
       setCurrentScreen("practice-screen");
+    } catch (err) {
+      console.error("Failed to load random questions:", err);
+    }
+  };
+
+  const handleSaveQuestionState = async (questionId, solvedInfo) => {
+    try {
+      await saveProgress({
+        question_id: questionId,
+        selected_option: solvedInfo.selectedOption,
+        is_correct: solvedInfo.correct
+      });
+
+      setUserState(prev => {
+        const next = {
+          ...prev,
+          solvedQuestions: {
+            ...prev.solvedQuestions,
+            [questionId]: {
+              ...prev.solvedQuestions[questionId],
+              ...solvedInfo
+            }
+          }
+        };
+        saveState(next);
+        return next;
+      });
+
+      refreshExams();
+    } catch (err) {
+      console.error("Failed to save progress to SQLite:", err);
+    }
+  };
+
+  const handleToggleStar = async (questionId) => {
+    try {
+      const isStarred = !userState.starredQuestions[questionId];
+      await saveProgress({
+        question_id: questionId,
+        is_starred: isStarred
+      });
+
+      setUserState(prev => {
+        const next = {
+          ...prev,
+          starredQuestions: {
+            ...prev.starredQuestions,
+            [questionId]: isStarred
+          }
+        };
+        saveState(next);
+        return next;
+      });
+    } catch (err) {
+      console.error("Failed to toggle star:", err);
+    }
+  };
+
+  const handleReviewQuestion = async (examId, questionNum) => {
+    try {
+      const examMeta = exams.find(e => e.id === examId);
+      const questions = await fetchQuestions({ exam_id: examId });
+
+      const fullExam = {
+        exam_id: examId,
+        id: examId,
+        exam_name: examMeta?.name || examId,
+        banca: examMeta?.banca || "FGV",
+        questions: questions
+      };
+
+      const qIdx = questions.findIndex(q => q.number === questionNum);
+      setInitialQuestionIndex(qIdx !== -1 ? qIdx : 0);
+      setSelectedExam(fullExam);
+      setCurrentScreen("practice-screen");
+    } catch (err) {
+      console.error("Failed to review question:", err);
     }
   };
 
@@ -227,13 +309,13 @@ export default function App() {
           <div>
             <h2 className="font-display" style={{ fontSize: "1.4rem" }}>Área de Estudos</h2>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              Bem-vindo de volta! Resolva questões e acompanhe seus dados de aprovação.
+              Bem-vindo de volta! Resolva questões com motor SQLite local.
             </p>
           </div>
           <div className="header-user">
             <div className="user-info" style={{ textAlign: "right" }}>
               <div style={{ fontWeight: 600, fontSize: "0.95rem" }}>Estudante</div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Perfil Local</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>SQLite Persistence</div>
             </div>
             <div className="user-avatar">E</div>
           </div>
@@ -243,11 +325,12 @@ export default function App() {
         <div className="main-content">
           {currentScreen === "dashboard-screen" && (
             <Dashboard 
-              exams={examsData}
+              exams={exams}
               userState={userState}
               onStartExam={handleStartExam}
               onStartRandom={handleStartRandom}
               onSwitchScreen={setCurrentScreen}
+              loading={loadingExams}
             />
           )}
 
@@ -264,22 +347,17 @@ export default function App() {
 
           {currentScreen === "history-screen" && (
             <History 
-              exams={examsData}
+              exams={exams}
               userState={userState}
-              onReviewQuestion={(examId, questionNum) => {
-                handleReviewQuestion(examId, questionNum);
-                // We'll let selectedExam load. Since we want practice component to jump to this question,
-                // we can pass initialQuestionNumber down. We can implement a quick reference index finder.
-              }}
+              onReviewQuestion={handleReviewQuestion}
+              onToggleStar={handleToggleStar}
             />
           )}
 
           {currentScreen === "analysis-screen" && (
             <Stats 
-              exams={examsData}
+              exams={exams}
               userState={userState}
-              onReviewQuestion={handleReviewQuestion}
-              onStartRandom={handleStartRandom}
             />
           )}
 
@@ -288,8 +366,8 @@ export default function App() {
               userState={userState}
               onSaveApiKey={handleSaveApiKey}
               onResetData={handleResetData}
-              onImportBackup={handleImportBackup}
               onExportBackup={handleExportBackup}
+              onImportBackup={handleImportBackup}
             />
           )}
         </div>

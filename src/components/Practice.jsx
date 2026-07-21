@@ -192,8 +192,25 @@ Escreva a explicação de forma clara, amigável e direta em português. Utilize
 
           <div 
             className="question-text" 
-            dangerouslySetInnerHTML={{ __html: activeQuestion.statement.replace(/\n/g, "<br>") }}
+            dangerouslySetInnerHTML={{ __html: activeQuestion.statement }}
           />
+
+          {/* Question Images */}
+          {activeQuestion.images && activeQuestion.images.length > 0 && (
+            <div className="question-images-container">
+              {activeQuestion.images.map((imgSrc, imgIdx) => (
+                <div key={imgIdx} className="question-image-wrapper">
+                  <img 
+                    src={imgSrc} 
+                    alt={`Figura ${imgIdx + 1} da questão ${activeQuestion.number}`} 
+                    className="question-img" 
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           
           {/* Options container */}
           <div className="options-list">
