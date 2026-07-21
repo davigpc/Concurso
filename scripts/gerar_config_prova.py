@@ -1,113 +1,126 @@
-"""
-Script para identificar PDFs sem configuração na pasta 'provas/' e gerar automaticamente os arquivos .json.
-Ignora automaticamente provas duplicadas do mesmo concurso (Tipo 2, Tipo 3, Tipo 4).
-"""
-
 import os
 import json
-import fitz
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROVAS_DIR = os.path.join(SCRIPT_DIR, "..", "provas")
+PROVAS_DIR = r"c:\Users\davig\Downloads\Concurso\provas"
 
-
-def auto_detect_config(pdf_path):
-    """Lê a primeira página do PDF para tentar identificar a banca, título e total de questões."""
-    base_name = os.path.basename(pdf_path).rsplit(".", 1)[0]
-    
-    try:
-        doc = fitz.open(pdf_path)
-        first_page_text = doc[0].get_text("text").upper() if len(doc) > 0 else ""
-    except Exception as e:
-        print(f"Erro ao ler {pdf_path}: {e}")
-        first_page_text = ""
-
-    banca = "FGV"
-    if "CEBRASPE" in first_page_text or "CESPE" in first_page_text:
-        banca = "CEBRASPE"
-    elif "CESGRANRIO" in first_page_text:
-        banca = "CESGRANRIO"
-
-    raw_name = base_name.replace("_", " ").replace("-", " ")
-    clean_name = raw_name.title()
-
-    # Normalization dictionary for common terms and acronyms
-    replacements = {
-        r"\bTi\b": "TI",
-        r"\bBcb\b": "BCB",
-        r"\bBdmg\b": "BDMG",
-        r"\bCvm\b": "CVM",
-        r"\bTcesp\b": "TCESP",
-        r"\bTce\b": "TCE",
-        r"\bRn\b": "RN",
-        r"\bEs\b": "ES",
-        r"\bAce\b": "ACE",
-        r"\bSerpro\b": "SERPRO",
-        r"\bDataprev\b": "DATAPREV",
-        r"\bInformacao\b": "Informação",
-        r"\bEspecializao\b": "Especialização",
-        r"\bEspecializacao\b": "Especialização",
-        r"\bSustentacao\b": "Sustentação",
-        r"\bSeguranca\b": "Segurança",
-        r"\bEspecficos\b": "Específicos",
-        r"\bEspecificos\b": "Específicos",
-        r"\bEscriturrio\b": "Escriturário",
-        r"\bEscriturario\b": "Escriturário",
-        r"\bFiscalizao\b": "Fiscalização",
-        r"\bFiscalizacao\b": "Fiscalização",
-        r"\bManha\b": "Manhã"
+EXAM_METADATA = {
+    "031_BDMG_002_01.json": {
+        "nome_prova": "BDMG 2024 - Analista de TI: Desenvolvimento de Sistemas",
+        "banca": "CEBRASPE",
+        "ano": 2024,
+        "total_questoes": 72
+    },
+    "031_BDMG_CG1_01.json": {
+        "nome_prova": "BDMG 2024 - Conhecimentos Gerais (Todos os Cargos)",
+        "banca": "CEBRASPE",
+        "ano": 2024,
+        "total_questoes": 48
+    },
+    "D794D51B24F49D57884C4BACA10D545C9D56B8CBBB3ACBE82A0CA2B6B3DBE3E3.json": {
+        "nome_prova": "TCE-RN 2025 - Auditor de Controle Externo: Engenharia de Dados",
+        "banca": "CEBRASPE",
+        "ano": 2025,
+        "total_questoes": 72
+    },
+    "F76B359685CEB1E2FC5733837BC9E9D34C248F466B0C323B3C2D765582283A44.json": {
+        "nome_prova": "TCE-RN 2025 - Auditor de Controle Externo: Segurança da Informação",
+        "banca": "CEBRASPE",
+        "ano": 2025,
+        "total_questoes": 70
+    },
+    "analista_especializacao_tecnologia.json": {
+        "nome_prova": "SERPRO 2023 - Analista de TI: Especialização Tecnologia",
+        "banca": "CEBRASPE",
+        "ano": 2023,
+        "total_questoes": 120
+    },
+    "analista_tecnologia_da_informacao.json": {
+        "nome_prova": "Banco Central (BCB) 2024 - Analista: Tecnologia da Informação",
+        "banca": "CEBRASPE",
+        "ano": 2024,
+        "total_questoes": 120
+    },
+    "ati-arquitetura-engenharia-e-sustentacao-tecnologica-cns002-tipo-01.json": {
+        "nome_prova": "DATAPREV 2024 - Analista de TI: Arquitetura, Engenharia e Sustentação",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 70
+    },
+    "ati-desenvolvimento-de-software-cns003-tipo-01.json": {
+        "nome_prova": "DATAPREV 2024 - Analista de TI: Desenvolvimento de Software",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 70
+    },
+    "auditor-de-controle-externo-ace-tecnologia-da-informacaotecnologiadainformacao-tipo-1.json": {
+        "nome_prova": "TCE-ES 2023 - Auditor de Controle Externo: Tecnologia da Informação",
+        "banca": "FGV",
+        "ano": 2023,
+        "total_questoes": 80
+    },
+    "escriturario_agente_de_tecnologia.json": {
+        "nome_prova": "Banco do Brasil 2023 - Escriturário: Agente de Tecnologia",
+        "banca": "CESGRANRIO",
+        "ano": 2023,
+        "total_questoes": 70
+    },
+    "manha-analista-cvm-perfil-8-ti-sistemas-e-desenvolvimentoperfil-8-tipo-1.json": {
+        "nome_prova": "CVM 2024 - Analista: Perfil 8 - Sistemas e Desenvolvimento (Manhã)",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 40
+    },
+    "manha-analista-cvm-perfil-9-ti-infraestrutura-e-segurancaperfil-9-tipo-1.json": {
+        "nome_prova": "CVM 2024 - Analista: Perfil 9 - Infraestrutura e Segurança (Manhã)",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 40
+    },
+    "tarde-analista-cvm-perfil-8-ti-sistemas-e-desenvolvimentoperfil-8-tipo-1.json": {
+        "nome_prova": "CVM 2024 - Analista: Perfil 8 - Sistemas e Desenvolvimento (Tarde)",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 60
+    },
+    "tarde-analista-cvm-perfil-9-ti-infraestrutura-e-segurancaperfil-9-tipo-1.json": {
+        "nome_prova": "CVM 2024 - Analista: Perfil 9 - Infraestrutura e Segurança (Tarde)",
+        "banca": "FGV",
+        "ano": 2024,
+        "total_questoes": 60
+    },
+    "Prova Agente da Fiscalização - TI Tipo 1.json": {
+        "nome_prova": "TCESP 2023 - Agente da Fiscalização: Tecnologia da Informação",
+        "banca": "FGV",
+        "ano": 2023,
+        "total_questoes": 80
     }
+}
 
-    import re
-    for pat, repl in replacements.items():
-        clean_name = re.sub(pat, repl, clean_name, flags=re.IGNORECASE)
-
-    total_questions = 70
-    if banca == "CEBRASPE":
-        total_questions = 120
-
-    return {
-        "name": clean_name,
-        "banca": banca,
-        "total_questions": total_questions,
-        "answers": {}
-    }
-
-
-
-def sync_provas_json():
-    """Gera arquivos .json para todos os PDFs em 'provas/' que ainda não possuam configuração."""
-    print("[AUTOSYNC] Verificando arquivos PDF na pasta 'provas/'...\n")
-    
-    pdfs = [f for f in os.listdir(PROVAS_DIR) if f.endswith(".pdf")]
-    created_count = 0
-    
-    for pdf_file in pdfs:
-        # Ignorar provas que são apenas variações de ordem (Tipo 2, 3, 4)
-        pdf_file_lower = pdf_file.lower()
-        if any(t in pdf_file_lower for t in ["tipo-02", "tipo-03", "tipo-04", "tipo 2", "tipo 3", "tipo 4"]):
-            continue
-
-        base_name = pdf_file.rsplit(".", 1)[0]
-        json_path = os.path.join(PROVAS_DIR, base_name + ".json")
-        
+def fix_all_exam_json_configs():
+    for fname, meta in EXAM_METADATA.items():
+        json_path = os.path.join(PROVAS_DIR, fname)
         if not os.path.exists(json_path):
-            pdf_path = os.path.join(PROVAS_DIR, pdf_file)
-            config_data = auto_detect_config(pdf_path)
-            
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(config_data, f, ensure_ascii=False, indent=2)
-                
-            print(f"[NOVO CONFIG] Criado arquivo de configuracao: {base_name}.json")
-            print(f"   - Titulo detectado: {config_data['name']}")
-            print(f"   - Banca detectada : {config_data['banca']}")
-            created_count += 1
+            for f in os.listdir(PROVAS_DIR):
+                if f.lower().startswith(fname[:15].lower()):
+                    json_path = os.path.join(PROVAS_DIR, f)
+                    break
 
-    if created_count == 0:
-        print("Nenhum novo PDF pendente de configuracao.")
-    else:
-        print(f"\n[SUCESSO] {created_count} novo(s) arquivo(s) .json configurado(s) com sucesso!")
+        cfg = {}
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as jf:
+                try:
+                    cfg = json.load(jf)
+                except Exception:
+                    cfg = {}
 
+        cfg["nome_prova"] = meta["nome_prova"]
+        cfg["banca"] = meta["banca"]
+        cfg["ano"] = meta["ano"]
+        cfg["total_questoes"] = meta["total_questoes"]
+
+        with open(json_path, "w", encoding="utf-8") as jf:
+            json.dump(cfg, jf, ensure_ascii=False, indent=2)
+            print(f"Updated {os.path.basename(json_path)} -> {meta['nome_prova']} ({meta['total_questoes']} q)")
 
 if __name__ == "__main__":
-    sync_provas_json()
+    fix_all_exam_json_configs()

@@ -2,5 +2,8 @@
   "name": "DATAPREV 2024 - Analista de TI: Desenvolvimento de Software (Tipo 1 - Branca)",
   "banca": "FGV",
   "total_questions": 70,
-  "answers": {}
+  "answers": {},
+  "nome_prova": "DATAPREV 2024 - Analista de TI: Desenvolvimento de Software",
+  "ano": 2024,
+  "total_questoes": 70
 }

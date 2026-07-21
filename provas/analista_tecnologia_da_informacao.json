@@ -1,5 +1,8 @@
 {
   "name": "Banco Central (BCB) 2024 - Analista: Tecnologia da Informação (Cebraspe)",
   "banca": "CEBRASPE",
-  "answers": {}
+  "answers": {},
+  "nome_prova": "Banco Central (BCB) 2024 - Analista: Tecnologia da Informação",
+  "ano": 2024,
+  "total_questoes": 120
 }

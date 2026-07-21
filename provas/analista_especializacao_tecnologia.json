@@ -1,5 +1,8 @@
 {
   "name": "SERPRO 2023 - Analista de TI: Especialização Tecnologia (Cebraspe)",
   "banca": "CEBRASPE",
-  "answers": {}
+  "answers": {},
+  "nome_prova": "SERPRO 2023 - Analista de TI: Especialização Tecnologia",
+  "ano": 2023,
+  "total_questoes": 120
 }

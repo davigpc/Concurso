@@ -1,5 +1,8 @@
 {
   "name": "TCE-RN 2025 - Conhecimentos Específicos: Engenharia de Dados (Cebraspe)",
   "banca": "CEBRASPE",
-  "answers": {}
+  "answers": {},
+  "nome_prova": "TCE-RN 2025 - Auditor de Controle Externo: Engenharia de Dados",
+  "ano": 2025,
+  "total_questoes": 72
 }

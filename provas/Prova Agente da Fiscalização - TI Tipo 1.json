@@ -2,5 +2,8 @@
   "name": "TCESP 2023 - Agente da Fiscalização: Tecnologia da Informação (Tipo 1 - Cinza)",
   "banca": "FGV",
   "total_questions": 80,
-  "answers": "ADBDDBEDBDCBDAEDACDDEDABCADEBCBDBCEBDDAEBCEBEDCACAABDDADACCBBCDEBDBDCADEDEEBCBDD"
+  "answers": "ADBDDBEDBDCBDAEDACDDEDABCADEBCBDBCEBDDAEBCEBEDCACAABDDADACCBBCDEBDBDCADEDEEBCBDD",
+  "nome_prova": "TCESP 2023 - Agente da Fiscalização: Tecnologia da Informação",
+  "ano": 2023,
+  "total_questoes": 80
 }
